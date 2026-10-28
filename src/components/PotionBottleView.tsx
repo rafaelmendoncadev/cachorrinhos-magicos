@@ -3,6 +3,8 @@ import { BottleModel } from '../utils/levelEngine';
 import { POTION_COLORS } from '../data/constants';
 import { Lock, HelpCircle, ShieldAlert, Crown, Shuffle } from 'lucide-react';
 
+export type BottleDensity = 'normal' | 'medium' | 'compact' | 'ultra';
+
 interface PotionBottleViewProps {
   bottle: BottleModel;
   isSelected: boolean;
@@ -10,6 +12,7 @@ interface PotionBottleViewProps {
   isHintTarget: boolean;
   isShuffleMode: boolean;
   colorblindMode: boolean;
+  density?: BottleDensity;
   onClick: (bottle: BottleModel) => void;
 }
 
@@ -20,22 +23,40 @@ export const PotionBottleView: React.FC<PotionBottleViewProps> = ({
   isHintTarget,
   isShuffleMode,
   colorblindMode,
+  density = 'normal',
   onClick,
 }) => {
+  // Size classes by density so 20-28 bottles fit in the game area without scrolling
+  const normalSizeByDensity: Record<BottleDensity, string> = {
+    normal: 'w-14 sm:w-[70px] h-32 sm:h-36',
+    medium: 'w-12 sm:w-16 h-28 sm:h-32',
+    compact: 'w-11 sm:w-[58px] h-24 sm:h-[108px]',
+    ultra: 'w-10 sm:w-[52px] h-[86px] sm:h-[96px]',
+  };
+
+  const hugeSizeByDensity: Record<BottleDensity, string> = {
+    normal: 'w-20 sm:w-24 h-40 sm:h-44',
+    medium: 'w-18 sm:w-22 h-36 sm:h-40',
+    compact: 'w-16 sm:w-20 h-32 sm:h-36',
+    ultra: 'w-14 sm:w-18 h-28 sm:h-32',
+  };
+
+  const containerSizeClass = bottle.isHuge
+    ? hugeSizeByDensity[density]
+    : normalSizeByDensity[density];
+
   if (bottle.isDelivered) {
     return (
-      <div className="w-16 sm:w-20 h-36 sm:h-40 flex items-center justify-center opacity-0 pointer-events-none" />
+      <div
+        className={`${containerSizeClass} flex items-center justify-center opacity-0 pointer-events-none`}
+      />
     );
   }
 
   const isCovered = bottle.isCloth || bottle.colorCloth;
   const clothSpec =
     bottle.clothColor > 0 ? POTION_COLORS[bottle.clothColor] : null;
-
-  // Height & width classes depending on whether it's a Huge Boss Bottle (capacity 13) or standard (capacity 4)
-  const containerSizeClass = bottle.isHuge
-    ? 'w-24 sm:w-28 h-48 sm:h-52'
-    : 'w-16 sm:w-[74px] h-36 sm:h-40';
+  const isDense = density === 'compact' || density === 'ultra';
 
   const canBeShuffled =
     isShuffleMode &&
@@ -98,19 +119,31 @@ export const PotionBottleView: React.FC<PotionBottleViewProps> = ({
 
       {/* Cork / Stopper when Completed */}
       {bottle.isComplete && (
-        <div className="w-8 h-3.5 bg-gradient-to-b from-amber-600 to-amber-800 rounded-t-md border-2 border-amber-400 shadow-md -mb-1 z-20 transition-all" />
+        <div
+          className={`${
+            isDense ? 'w-6 h-2.5' : 'w-8 h-3.5'
+          } bg-gradient-to-b from-amber-600 to-amber-800 rounded-t-md border-2 border-amber-400 shadow-md -mb-1 z-20 transition-all`}
+        />
       )}
 
       {/* Bottle Neck / Lip */}
       <div
         className={`${
-          bottle.isHuge ? 'w-14 h-3.5' : 'w-10 h-3'
+          bottle.isHuge
+            ? isDense
+              ? 'w-11 h-2.5'
+              : 'w-14 h-3.5'
+            : isDense
+            ? 'w-8 h-2'
+            : 'w-10 h-2.5'
         } rounded-t-lg border-2 border-b-0 border-white/60 bg-white/15 backdrop-blur-sm z-10 shadow-inner`}
       />
 
       {/* Main Glass Body */}
       <div
-        className={`relative w-full flex-1 rounded-b-3xl rounded-t-xl border-2 overflow-hidden flex flex-col justify-end transition-all shadow-xl ${
+        className={`relative w-full flex-1 ${
+          isDense ? 'rounded-b-2xl rounded-t-lg' : 'rounded-b-3xl rounded-t-xl'
+        } border-2 overflow-hidden flex flex-col justify-end transition-all shadow-xl ${
           isSelected
             ? 'border-amber-300 shadow-[0_10px_25px_rgba(251,191,36,0.45)]'
             : bottle.isComplete
@@ -146,7 +179,11 @@ export const PotionBottleView: React.FC<PotionBottleViewProps> = ({
                   key={slotIdx}
                   className="relative w-full flex-1 flex items-center justify-center bg-gradient-to-b from-slate-800 to-slate-950 border-t border-slate-600/50 text-slate-300"
                 >
-                  <HelpCircle className="w-3.5 h-3.5 text-amber-300/80 animate-pulse" />
+                  <HelpCircle
+                    className={`${
+                      isDense ? 'w-2.5 h-2.5' : 'w-3.5 h-3.5'
+                    } text-amber-300/80 animate-pulse`}
+                  />
                 </div>
               );
             }
@@ -160,12 +197,18 @@ export const PotionBottleView: React.FC<PotionBottleViewProps> = ({
                   borderTop: isTopOfBottle
                     ? '2px solid rgba(255,255,255,0.85)'
                     : 'none',
-                  borderBottomLeftRadius: slotIdx === 0 ? '18px' : '0px',
-                  borderBottomRightRadius: slotIdx === 0 ? '18px' : '0px',
+                  borderBottomLeftRadius:
+                    slotIdx === 0 ? (isDense ? '12px' : '18px') : '0px',
+                  borderBottomRightRadius:
+                    slotIdx === 0 ? (isDense ? '12px' : '18px') : '0px',
                 }}
               >
                 {colorblindMode && !bottle.isHuge && (
-                  <span className="text-[11px] font-black text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] select-none">
+                  <span
+                    className={`${
+                      isDense ? 'text-[9px]' : 'text-[11px]'
+                    } font-black text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] select-none leading-none`}
+                  >
                     {spec.symbol}
                   </span>
                 )}
@@ -177,17 +220,25 @@ export const PotionBottleView: React.FC<PotionBottleViewProps> = ({
         {/* OBSTACLE 1: Magic Curtain (isCloth / colorCloth) */}
         {isCovered && (
           <div
-            className="absolute inset-0 z-30 flex flex-col items-center justify-center p-1.5 text-center border-2 border-amber-300/60 shadow-inner"
+            className="absolute inset-0 z-30 flex flex-col items-center justify-center p-1 text-center border-2 border-amber-300/60 shadow-inner"
             style={{
               background: clothSpec
                 ? `linear-gradient(160deg, ${clothSpec.hexTop}ee, ${clothSpec.hexBody}f5)`
                 : 'linear-gradient(160deg, #475569f5, #1e293bf8)',
             }}
           >
-            <div className="w-7 h-7 rounded-full bg-black/35 border border-white/40 flex items-center justify-center text-white font-black text-xs mb-1 shadow">
+            <div
+              className={`${
+                isDense ? 'w-5 h-5 text-[10px]' : 'w-7 h-7 text-xs'
+              } rounded-full bg-black/35 border border-white/40 flex items-center justify-center text-white font-black mb-0.5 shadow`}
+            >
               {clothSpec && colorblindMode ? clothSpec.symbol : '🎭'}
             </div>
-            <span className="text-[11px] font-black text-white drop-shadow uppercase">
+            <span
+              className={`${
+                isDense ? 'text-[9px]' : 'text-[11px]'
+              } font-black text-white drop-shadow uppercase leading-none`}
+            >
               ×{bottle.clothNum || 1}
             </span>
           </div>
@@ -195,9 +246,11 @@ export const PotionBottleView: React.FC<PotionBottleViewProps> = ({
 
         {/* OBSTACLE 2: Plaster / Secret Shell (isParcel) */}
         {bottle.isParcel && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-gradient-to-b from-stone-300 via-stone-400 to-stone-500 text-stone-900 p-1.5 border-2 border-stone-200 shadow-inner">
-            <ShieldAlert className="w-6 h-6 text-stone-800 mb-0.5" />
-            <span className="text-[9px] font-black uppercase tracking-tighter text-center leading-tight">
+          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-gradient-to-b from-stone-300 via-stone-400 to-stone-500 text-stone-900 p-1 border-2 border-stone-200 shadow-inner">
+            <ShieldAlert
+              className={`${isDense ? 'w-4 h-4' : 'w-6 h-6'} text-stone-800 mb-0.5`}
+            />
+            <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-tighter text-center leading-tight">
               Gesso
             </span>
           </div>
@@ -206,10 +259,14 @@ export const PotionBottleView: React.FC<PotionBottleViewProps> = ({
         {/* OBSTACLE 3: Locked Extra Bottle (isLocked) */}
         {bottle.isLocked && (
           <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-[2px] p-1 text-amber-300 hover:bg-slate-900/75 transition-colors">
-            <div className="w-8 h-8 rounded-full bg-amber-500/20 border border-amber-400/60 flex items-center justify-center mb-1 shadow">
-              <Lock className="w-4 h-4 text-amber-300" />
+            <div
+              className={`${
+                isDense ? 'w-6 h-6' : 'w-8 h-8'
+              } rounded-full bg-amber-500/20 border border-amber-400/60 flex items-center justify-center mb-0.5 shadow`}
+            >
+              <Lock className={`${isDense ? 'w-3 h-3' : 'w-4 h-4'} text-amber-300`} />
             </div>
-            <span className="text-[9px] font-extrabold uppercase tracking-wider text-amber-200 text-center">
+            <span className="text-[8px] sm:text-[9px] font-extrabold uppercase tracking-wider text-amber-200 text-center leading-none">
               +Tubo
             </span>
           </div>
@@ -218,8 +275,12 @@ export const PotionBottleView: React.FC<PotionBottleViewProps> = ({
 
       {/* OBSTACLE 4: Stone / Clay Pedestal at base (isStone) */}
       {bottle.isStone && (
-        <div className="w-[112%] h-5 -mt-2 z-20 rounded-lg bg-gradient-to-r from-amber-900 via-stone-700 to-amber-950 border-2 border-amber-500/70 shadow-lg flex items-center justify-center">
-          <span className="text-[9px] font-black text-amber-200 uppercase tracking-widest">
+        <div
+          className={`w-[112%] ${
+            isDense ? 'h-4 -mt-1.5' : 'h-5 -mt-2'
+          } z-20 rounded-lg bg-gradient-to-r from-amber-900 via-stone-700 to-amber-950 border-2 border-amber-500/70 shadow-lg flex items-center justify-center`}
+        >
+          <span className="text-[8px] sm:text-[9px] font-black text-amber-200 uppercase tracking-widest leading-none">
             🪨 Argila
           </span>
         </div>

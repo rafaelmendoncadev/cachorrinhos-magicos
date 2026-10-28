@@ -23,11 +23,11 @@ export const PuppyOrderCard: React.FC<PuppyOrderCardProps> = ({
 
   if (order.targetColor === null || !colorSpec) {
     return (
-      <div className="relative flex flex-col items-center justify-center h-28 sm:h-32 rounded-2xl bg-slate-900/50 border border-slate-700/40 p-2 opacity-60 transition-all">
-        <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300 mb-1">
+      <div className="relative flex flex-col items-center justify-center h-20 sm:h-24 rounded-2xl bg-slate-900/50 border border-slate-700/40 p-1.5 opacity-60 transition-all">
+        <div className="w-7 h-7 rounded-full bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300 mb-0.5">
           <Check className="w-4 h-4" />
         </div>
-        <span className="text-[11px] font-bold text-slate-400 text-center">
+        <span className="text-[10px] font-bold text-slate-400 text-center">
           {lang === 'pt' ? 'Satisfeito!' : 'Served!'}
         </span>
       </div>
@@ -36,7 +36,7 @@ export const PuppyOrderCard: React.FC<PuppyOrderCardProps> = ({
 
   return (
     <div
-      className={`relative flex flex-col items-center justify-between h-28 sm:h-32 rounded-2xl p-2 transition-all duration-300 border shadow-lg overflow-hidden ${
+      className={`relative flex flex-col items-center justify-between h-20 sm:h-24 rounded-2xl p-1.5 sm:p-2 transition-all duration-300 border shadow-lg overflow-hidden ${
         order.isDelivering
           ? 'scale-105 ring-2 ring-amber-300 bg-amber-950/60 border-amber-400'
           : isHighlighted
@@ -52,7 +52,7 @@ export const PuppyOrderCard: React.FC<PuppyOrderCardProps> = ({
 
       {/* Puppy Avatar SVG with Wizard Hat */}
       <div className="relative z-10 flex items-center gap-1.5 w-full">
-        <div className="relative w-11 h-11 sm:w-12 sm:h-12 shrink-0 animate-dogBounce">
+        <div className="relative w-9 h-9 sm:w-10 sm:h-10 shrink-0 animate-dogBounce">
           <svg viewBox="0 0 64 64" className="w-full h-full drop-shadow">
             {/* Wizard Hat Brim & Cone */}
             <path

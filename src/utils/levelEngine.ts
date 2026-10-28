@@ -38,6 +38,7 @@ export interface ParsedLevelState {
   rawId: number;
   isHard: boolean;
   isSuperHard: boolean;
+  group: number[];
   bottles: BottleModel[];
   orders: PuppyOrder[];
   remainingOrderBoxList: number[];
@@ -255,6 +256,7 @@ export function buildLevelState(levelNumber: number, keepLockedTubes: boolean = 
     rawId: cfg.id,
     isHard: cfg.isHard === 1,
     isSuperHard: cfg.isSuperHard === 1,
+    group: cfg.group || [],
     bottles: rawBottles,
     orders,
     remainingOrderBoxList: boxList,

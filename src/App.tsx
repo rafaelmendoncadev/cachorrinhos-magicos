@@ -18,7 +18,7 @@ import {
 } from './utils/levelEngine';
 import { soundFX } from './utils/sound';
 import { PuppyOrderCard } from './components/PuppyOrderCard';
-import { PotionBottleView } from './components/PotionBottleView';
+import { PotionBottleView, BottleDensity } from './components/PotionBottleView';
 import { JourneyModal } from './components/JourneyModal';
 import { GrimoireModal } from './components/GrimoireModal';
 import {
@@ -91,6 +91,7 @@ export function App() {
 
   // Active Level State
   const [bottles, setBottles] = useState<BottleModel[]>([]);
+  const [levelGroups, setLevelGroups] = useState<number[]>([]);
   const [orders, setOrders] = useState<PuppyOrder[]>([]);
   const [remainingBoxList, setRemainingBoxList] = useState<number[]>([]);
   const [hugeColors, setHugeColors] = useState<Set<number>>(new Set());
@@ -155,6 +156,7 @@ export function App() {
   const loadLevel = useCallback((lvl: number) => {
     const parsed = buildLevelState(lvl, true);
     setBottles(parsed.bottles);
+    setLevelGroups(parsed.group);
     setOrders(parsed.orders);
     setRemainingBoxList(parsed.remainingOrderBoxList);
     setHugeColors(parsed.hugeColors);
@@ -647,6 +649,48 @@ export function App() {
       ? selectedBottle.layers[selectedBottle.layers.length - 1].color
       : null;
 
+  // Compute organized rows based on level `group` definition (or balanced rows of max 7)
+  // so 20 to 28 bottles always fit inside the game area without overflowing
+  const bottleRows = React.useMemo(() => {
+    const rows: BottleModel[][] = [];
+    if (levelGroups.length > 1) {
+      let cursor = 0;
+      for (const count of levelGroups) {
+        if (cursor >= bottles.length) break;
+        rows.push(bottles.slice(cursor, cursor + count));
+        cursor += count;
+      }
+      // Append any dynamically added extra bottles (+Tubo) to the last row or a new row
+      if (cursor < bottles.length) {
+        const extras = bottles.slice(cursor);
+        if (rows.length > 0 && rows[rows.length - 1].length + extras.length <= 8) {
+          rows[rows.length - 1].push(...extras);
+        } else {
+          rows.push(extras);
+        }
+      }
+    } else if (bottles.length > 8) {
+      // Single-group levels with 10-19 bottles: split into balanced rows of max 7
+      const numRows = Math.ceil(bottles.length / 7);
+      const perRow = Math.ceil(bottles.length / numRows);
+      for (let i = 0; i < bottles.length; i += perRow) {
+        rows.push(bottles.slice(i, i + perRow));
+      }
+    } else {
+      rows.push(bottles);
+    }
+    return rows;
+  }, [bottles, levelGroups]);
+
+  const bottleDensity: BottleDensity = React.useMemo(() => {
+    const total = bottles.length;
+    const rowCount = bottleRows.length;
+    if (total >= 21 || rowCount >= 4) return 'ultra';
+    if (total >= 15 || rowCount === 3) return 'compact';
+    if (total >= 9) return 'medium';
+    return 'normal';
+  }, [bottles.length, bottleRows.length]);
+
   return (
     <div
       className={`relative w-screen h-screen overflow-hidden flex flex-col justify-between bg-gradient-to-b ${activeTheme.gradient} select-none`}
@@ -665,9 +709,14 @@ export function App() {
       </div>
 
       {/* TOP HUD BAR */}
-      <header className="relative z-20 flex items-center justify-between px-3 sm:px-6 pt-3 pb-2 bg-slate-950/60 backdrop-blur-md border-b border-white/10">
+      <header className="relative z-20 shrink-0 flex items-center justify-between px-3 sm:px-6 pt-2 pb-1.5 bg-slate-950/60 backdrop-blur-md border-b border-white/10">
         {/* Left: Brand & Level Selector */}
         <div className="flex items-center gap-2 sm:gap-3">
+          <img
+            src="./icon.png"
+            alt="Cachorrinhos Mágicos"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl shadow-md border border-purple-400/40 object-contain"
+          />
           <div className="flex items-center bg-slate-900/90 border border-purple-500/40 rounded-2xl p-1 shadow-md">
             <button
               onClick={() => {
@@ -782,9 +831,9 @@ export function App() {
       </header>
 
       {/* PUPPY CUSTOMERS ORDER COUNTER (Top Stage) */}
-      <section className="relative z-20 px-3 sm:px-6 pt-2 pb-2 bg-slate-950/35 border-b border-white/10 shadow-lg">
+      <section className="relative z-20 shrink-0 px-3 sm:px-6 pt-1.5 pb-1.5 bg-slate-950/35 border-b border-white/10 shadow-lg">
         <div className="max-w-3xl mx-auto">
-          <div className="flex items-center justify-between mb-1.5 px-1">
+          <div className="flex items-center justify-between mb-1 px-1">
             <span className="text-[11px] font-extrabold uppercase tracking-wider text-purple-200/90 flex items-center gap-1.5">
               🐶{' '}
               {lang === 'pt'
@@ -835,25 +884,47 @@ export function App() {
       )}
 
       {/* MAIN ALCHEMY TABLE (Bottles Grid) */}
-      <main className="relative z-10 flex-1 overflow-y-auto flex items-center justify-center p-3 sm:p-6">
-        <div className="max-w-4xl w-full flex flex-wrap items-end justify-center gap-x-3 sm:gap-x-5 gap-y-5 sm:gap-y-7 py-4">
-          {bottles.map((bottle) => (
-            <PotionBottleView
-              key={bottle.id}
-              bottle={bottle}
-              isSelected={selectedBottleId === bottle.id}
-              isHintSource={hintMove?.fromId === bottle.id}
-              isHintTarget={hintMove?.toId === bottle.id}
-              isShuffleMode={isShuffleMode}
-              colorblindMode={colorblindMode}
-              onClick={handleBottleClick}
-            />
+      <main className="relative z-10 flex-1 min-h-0 overflow-y-auto flex items-center justify-center px-2 sm:px-6 py-1.5 sm:py-3">
+        <div
+          className={`max-w-5xl w-full flex flex-col items-center justify-center ${
+            bottleDensity === 'ultra'
+              ? 'gap-y-2 sm:gap-y-2.5'
+              : bottleDensity === 'compact'
+              ? 'gap-y-3 sm:gap-y-4'
+              : 'gap-y-4 sm:gap-y-6'
+          }`}
+        >
+          {bottleRows.map((row, rowIdx) => (
+            <div
+              key={rowIdx}
+              className={`w-full flex flex-wrap items-end justify-center ${
+                bottleDensity === 'ultra'
+                  ? 'gap-x-1.5 sm:gap-x-3 gap-y-2'
+                  : bottleDensity === 'compact'
+                  ? 'gap-x-2 sm:gap-x-4 gap-y-3'
+                  : 'gap-x-3 sm:gap-x-5 gap-y-4'
+              }`}
+            >
+              {row.map((bottle) => (
+                <PotionBottleView
+                  key={bottle.id}
+                  bottle={bottle}
+                  isSelected={selectedBottleId === bottle.id}
+                  isHintSource={hintMove?.fromId === bottle.id}
+                  isHintTarget={hintMove?.toId === bottle.id}
+                  isShuffleMode={isShuffleMode}
+                  colorblindMode={colorblindMode}
+                  density={bottleDensity}
+                  onClick={handleBottleClick}
+                />
+              ))}
+            </div>
           ))}
         </div>
       </main>
 
       {/* BOTTOM POWER-UPS DOCK */}
-      <footer className="relative z-20 px-4 py-3 bg-slate-950/75 backdrop-blur-md border-t border-white/10">
+      <footer className="relative z-20 shrink-0 px-4 py-2 bg-slate-950/75 backdrop-blur-md border-t border-white/10">
         <div className="max-w-xl mx-auto grid grid-cols-4 gap-2.5 sm:gap-4">
           {/* 1. Undo */}
           <button

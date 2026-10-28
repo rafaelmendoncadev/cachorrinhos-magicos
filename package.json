@@ -21,9 +21,12 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
+      "public/**/*",
       "package.json"
     ],
+    "icon": "public/icon.png",
     "win": {
+      "icon": "public/icon.ico",
       "target": [
         "nsis",
         "portable"

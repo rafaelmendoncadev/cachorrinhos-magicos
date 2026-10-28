@@ -5,15 +5,20 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+const isDev = !app.isPackaged && Boolean(process.env.VITE_DEV_SERVER_URL);
 
 function createWindow() {
+  const iconPath = isDev
+    ? path.join(__dirname, '../public/icon.png')
+    : path.join(__dirname, '../dist/icon.png');
+
   const mainWindow = new BrowserWindow({
     width: 1080,
     height: 820,
     minWidth: 720,
     minHeight: 640,
     title: 'Cachorrinho Mágico: Classificação Mágica',
+    icon: iconPath,
     backgroundColor: '#020617',
     autoHideMenuBar: true,
     webPreferences: {
